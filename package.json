@@ -1,0 +1,22 @@
+{
+	"name": "service-mosaicpicture",
+	"version": "0.0.1",
+	"devDependencies": {
+		"grunt": "0.4.5",
+		"grunt-contrib-clean": "0.5.0",
+		"grunt-contrib-watch": "0.6.1",
+		"grunt-typescript": "0.3.8",
+		"grunt-contrib-copy": "0.5.0",
+		"grunt-express-server": "0.4.19",
+		"grunt-mocha-test": "0.12.7",
+		"grunt-contrib-yuidoc": "0.5.2",
+		"grunt-npm-install": "0.1.0",
+		"grunt-update-json": "0.1.3",
+		"grunt-contrib-symlink": "0.3.0",
+		"mocha-jenkins-reporter": "0.1.9",
+		"istanbul": "0.3.17",
+		"grunt-mocha-istanbul": "2.4.0",
+	  	"mocha": "2.2.5",
+	  	"grunt-env": "0.4.4"
+	}
+}
