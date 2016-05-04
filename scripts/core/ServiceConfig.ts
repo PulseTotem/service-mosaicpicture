@@ -39,6 +39,14 @@ class ServiceConfig {
 	static statHost : string = "";
 
 	/**
+	 * Path for temp files
+	 *
+	 * @static
+	 * @type {string}
+     */
+	static tmpFilePath : string = "";
+
+	/**
 	 * Retrieve configuration information from file description.
 	 *
 	 * @method retrieveConfigurationInformation
@@ -52,6 +60,7 @@ class ServiceConfig {
 				ServiceConfig.cmsHost = configInfos.cmsHost;
 				ServiceConfig.cmsAuthKey = configInfos.cmsAuthKey;
 				ServiceConfig.statHost = configInfos.statHost;
+				ServiceConfig.tmpFilePath = configInfos.tmpFilePath;
 			} catch (e) {
 				Logger.error("Service configuration file can't be read.");
 				Logger.debug(e);
@@ -91,5 +100,15 @@ class ServiceConfig {
 	static getStatHost() : string {
 		ServiceConfig.retrieveConfigurationInformation();
 		return ServiceConfig.statHost;
+	}
+
+	/**
+	 * Return temporary path for file
+	 * @static
+	 * @returns {string} Temp path file
+     */
+	static getTmpFilePath() : string {
+		ServiceConfig.retrieveConfigurationInformation();
+		return ServiceConfig.tmpFilePath;
 	}
 }
