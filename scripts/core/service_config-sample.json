@@ -1,5 +1,6 @@
 {
   "cmsHost" : "http://localhost:8000/",
   "cmsAuthKey" : "",
-  "statHost": "http://localhost:11000/crud/"
+  "statHost": "http://localhost:11000/crud/",
+  "tmpFilePath": "/tmp"
 }

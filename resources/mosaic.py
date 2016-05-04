@@ -150,7 +150,7 @@ class MosaicImage:
 	def save(self, path):
 		self.image.save(path)
 
-def build_mosaic(result_queue, all_tile_data_large, original_img_large):
+def build_mosaic(result_queue, all_tile_data_large, original_img_large, output_path):
 	mosaic = MosaicImage(original_img_large)
 
 	active_workers = WORKER_COUNT
@@ -169,10 +169,10 @@ def build_mosaic(result_queue, all_tile_data_large, original_img_large):
 		except KeyboardInterrupt:
 			pass
 
-	mosaic.save(OUT_FILE)
-	print '\nFinished, output is in', OUT_FILE
+	mosaic.save(output_path)
+	print '\nFinished, output is in', output_path
 
-def compose(original_img, tiles):
+def compose(original_img, tiles, output_path):
 	print 'Building mosaic, press Ctrl-C to abort...'
 	original_img_large, original_img_small = original_img
 	tiles_large, tiles_small = tiles
@@ -187,7 +187,7 @@ def compose(original_img, tiles):
 
 	try:
 		# start the worker processes that will build the mosaic image
-		Process(target=build_mosaic, args=(result_queue, all_tile_data_large, original_img_large)).start()
+		Process(target=build_mosaic, args=(result_queue, all_tile_data_large, original_img_large, output_path)).start()
 
 		# start the worker processes that will perform the tile fitting
 		for n in range(WORKER_COUNT):
@@ -209,14 +209,14 @@ def compose(original_img, tiles):
 		for n in range(WORKER_COUNT):
 			work_queue.put((EOQ_VALUE, EOQ_VALUE))
 
-def mosaic(img_path, tiles_path):
+def mosaic(img_path, tiles_path, output_path):
 	tiles_data = TileProcessor(tiles_path).get_tiles()
 	image_data = TargetImage(img_path).get_data()
-	compose(image_data, tiles_data)
+	compose(image_data, tiles_data, output_path)
 
 if __name__ == '__main__':
 	if len(sys.argv) < 3:
-		print 'Usage: %s <image> <tiles directory>\r' % (sys.argv[0],)
+		print 'Usage: %s <image> <tiles directory> <output>\r' % (sys.argv[0],)
 	else:
-		mosaic(sys.argv[1], sys.argv[2])
+		mosaic(sys.argv[1], sys.argv[2], sys.argv[3])
 
