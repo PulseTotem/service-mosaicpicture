@@ -4,7 +4,7 @@
 
 /// <reference path="../../t6s-core/core-backend/libsdef/node-uuid.d.ts" />
 /// <reference path="../../t6s-core/core-backend/scripts/Logger.ts" />
-
+/// <reference path="../core/MosaicHelper.ts" />
 /// <reference path="../MosaicpictureNamespaceManager.ts" />
 
 class InstagramMosaic extends SourceItf {
@@ -18,112 +18,101 @@ class InstagramMosaic extends SourceItf {
 	constructor(params : any, mosaicpictureNamespaceManager : MosaicpictureNamespaceManager) {
 		super(params, mosaicpictureNamespaceManager);
 
-		if (this.checkParams(["Limit","InfoDuration","SearchQuery","oauthKey"])) {
+		if (this.checkParams(["Limit","InfoDuration","SearchQuery","oauthKey","PictureURL","LookBackward","CMSAlbumId"])) {
 			this.run();
 		}
-
-		this.getSourceNamespaceManager().socket.id;
 	}
 
 	run() {
 		var self = this;
 
-		Logger.debug("TaggedPictures Action with params :");
-		Logger.debug(this.getParams());
+		var socketId : number = this.getSourceNamespaceManager().socket.id;
+		var limit = parseInt(self.getSourceNamespaceManager().getParams().Limit);
+		var infoDuration = parseInt(self.getSourceNamespaceManager().getParams().Limit);
+		var searchQuery = self.getSourceNamespaceManager().getParams().SearchQuery;
+		var oAuthKey = self.getSourceNamespaceManager().getParams().oauthKey;
+		var pictureUrl = self.getSourceNamespaceManager().getParams().PictureURL;
+		var lookBackward = (self.getSourceNamespaceManager().getParams().LookBackward == "true");
+		var CMSAlbumId = self.getSourceNamespaceManager().getParams().CMSAlbumId;
+		var apiLimit = 20;
 
-		var failManageOAuth = function(error) {
-			Logger.error("Error during the request manage OAuth");
-			if(error) {
-				Logger.error(error);
-			}
-		};
+		var mosaichelper : MosaicHelper = MosaicHelper.getHelper(socketId);
 
-		var success = function(oauthActions) {
+		if (mosaichelper == null) {
+			mosaichelper = new MosaicHelper(CMSAlbumId, pictureUrl, lookBackward, socketId);
+		}
 
-			var failGet = function(error) {
-				Logger.error("Error during the request get");
+		// if limits of picture is not reached, some picture have to be retrieved
+		if (mosaichelper.getCountPic() < limit) {
+			var failManageOAuth = function(error) {
+				Logger.error("Error during the request manage OAuth");
 				if(error) {
 					Logger.error(error);
 				}
 			};
 
-			var successSearch = function (information) {
+			var success = function(oauthActions) {
 
-				var pictureAlbum : PictureAlbum = new PictureAlbum();
-				var listPhotos = information.data;
+				var failGet = function(error) {
+					Logger.error("Error during the request get");
+					if(error) {
+						Logger.error(error);
+					}
+				};
 
-				var limit = parseInt(self.getParams().Limit);
+				var successSearch = function (information) {
+					var listPhotos = information.data;
+					var urlPics = [];
+					var lastPicId = null;
 
-				if (listPhotos.length < limit) {
-					limit = listPhotos.length;
-				}
+					if (listPhotos.length == 0) {
+						mosaichelper.turnOffLookBackward();
+					} else {
+						for (var i = 0; i < listPhotos.length; i++) {
+							var photo = listPhotos[i];
+							lastPicId = photo.id;
+							urlPics.push(photo.images.standard_resolution.url);
+						}
 
-				var infoDuration = parseInt(self.getParams().InfoDuration);
+						var callback = function () {
+							Logger.debug("Finish to upload pictures new counter: "+mosaichelper.getCountPic());
 
-				var totalDuration = limit*infoDuration;
+							// TODO send info
+						};
 
-				pictureAlbum.setId(uuid.v1());
-				pictureAlbum.setPriority(0);
-				pictureAlbum.setDurationToDisplay(totalDuration);
+						mosaichelper.downloadFiles(urlPics, lastPicId, callback);
+					}
+				};
 
-				for (var i = 0; i < limit; i++) {
-					var photo = listPhotos[i];
 
-					if (photo.type == "image") {
-						var pic : Picture = new Picture(photo.id);
+				var urlApi = 'https://api.instagram.com/v1/tags/'+searchQuery+'/media/recent?count='+apiLimit;
 
-						pic.setCreationDate(new Date(photo.created_time));
-						pic.setDurationToDisplay(infoDuration);
-						//pic.setDescription(photo.description._content);
-						pic.setTitle(photo.caption.text);
-
-						var images = photo.images;
-
-						var low_reso = new PictureURL(photo.id+"_lowresolution");
-						low_reso.setURL(images.low_resolution.url);
-						low_reso.setHeight(images.low_resolution.height);
-						low_reso.setWidth(images.low_resolution.width);
-
-						var stand_reso = new PictureURL(photo.id+"_standardresolution");
-						stand_reso.setURL(images.standard_resolution.url);
-						stand_reso.setHeight(images.standard_resolution.height);
-						stand_reso.setWidth(images.standard_resolution.width);
-
-						var thumb = new PictureURL(photo.id+"thumbnail");
-						thumb.setURL(images.thumbnail.url);
-						thumb.setHeight(images.thumbnail.height);
-						thumb.setWidth(images.thumbnail.width);
-
-						pic.setMedium(stand_reso);
-						pic.setOriginal(stand_reso);
-						pic.setSmall(low_reso);
-						pic.setThumb(thumb);
-
-						var picUser = photo.user;
-
-						var user : User = new User(picUser.id);
-						user.setUsername(picUser.username);
-						user.setRealname(picUser.full_name);
-						user.setProfilPicture(picUser.profile_picture);
-						pic.setOwner(user);
-
-						pictureAlbum.addPicture(pic);
+				if (mosaichelper.getLastPicId() != null) {
+					if (mosaichelper.lookBackward()) {
+						urlApi += '&min_tag_id='+mosaichelper.getLastPicId();
+					} else {
+						urlApi += '&max_tag_id='+mosaichelper.getLastPicId();
 					}
 				}
 
-				Logger.debug("Send PictureAlbum to client : ");
-				Logger.debug(pictureAlbum);
-
-				self.getSourceNamespaceManager().sendNewInfoToClient(pictureAlbum);
+				Logger.debug("Get with the following URL : "+urlApi);
+				oauthActions.get(urlApi, successSearch, failGet);
 			};
 
+			self.getSourceNamespaceManager().manageOAuth('instagram', self.getParams().oauthKey, success, failManageOAuth);
 
-			var userPhoto = 'https://api.instagram.com/v1/tags/'+self.getParams().SearchQuery+'/media/recent?count='+self.getParams().Limit;
+		// if limits of picture is reached, we can process picture to create the image
+		} else {
+			var success = function () {
+				Logger.debug("It worked !");
+			};
 
-			Logger.debug("Get with the following URL : "+userPhoto);
-			oauthActions.get(userPhoto, successSearch, failGet);
-		};
+			var fail = function (err) {
+				Logger.error("Error while computing mosaic");
+				Logger.debug(err);
+			};
 
-		self.getSourceNamespaceManager().manageOAuth('instagram', self.getParams().oauthKey, success, failManageOAuth);
+			mosaichelper.computeMosaic(success, fail);
+		}
 	}
 }
