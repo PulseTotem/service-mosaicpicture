@@ -4,6 +4,7 @@
 
 /// <reference path="../../t6s-core/core-backend/libsdef/node-uuid.d.ts" />
 /// <reference path="../../t6s-core/core-backend/scripts/Logger.ts" />
+/// <reference path="../../t6s-core/core-backend/scripts/server/SourceItf.ts" />
 /// <reference path="../../t6s-core/core-backend/t6s-core/core/scripts/infotype/CmdList.ts" />
 	/// <reference path="../../t6s-core/core-backend/t6s-core/core/scripts/infotype/Cmd.ts" />
 /// <reference path="../core/MosaicHelper.ts" />
@@ -56,7 +57,7 @@ class InstagramMosaic extends SourceItf {
 				}
 			};
 
-			var success = function(oauthActions) {
+			var successManageOAuth = function(oauthActions) {
 
 				var failGet = function(error) {
 					Logger.error("Error during the request get");
@@ -114,11 +115,11 @@ class InstagramMosaic extends SourceItf {
 				oauthActions.get(urlApi, successSearch, failGet);
 			};
 
-			self.getSourceNamespaceManager().manageOAuth('instagram', self.getParams().oauthKey, success, failManageOAuth);
+			self.getSourceNamespaceManager().manageOAuth('instagram', self.getParams().oauthKey, successManageOAuth, failManageOAuth);
 
 		// if limits of picture is reached, we can process picture to create the image
 		} else {
-			var success = function () {
+			var successComputeMosaic = function () {
 				Logger.debug("It worked !");
 				mosaichelper.cleanPictures();
 				var cmdInfo : Cmd = new Cmd(socketId);
@@ -134,7 +135,7 @@ class InstagramMosaic extends SourceItf {
 				self.getSourceNamespaceManager().sendNewInfoToClient(infoList);
 			};
 
-			var fail = function (err) {
+			var failComputeMosaic = function (err) {
 				Logger.error("Error while computing mosaic");
 				Logger.debug(err);
 			};
@@ -147,7 +148,7 @@ class InstagramMosaic extends SourceItf {
 			infoList.addCmd(cmdInfo);
 			self.getSourceNamespaceManager().sendNewInfoToClient(infoList);
 
-			mosaichelper.computeMosaic(success, fail);
+			mosaichelper.computeMosaic(successComputeMosaic, failComputeMosaic);
 		}
 	}
 }
