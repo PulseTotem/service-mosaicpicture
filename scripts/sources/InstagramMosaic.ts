@@ -4,6 +4,8 @@
 
 /// <reference path="../../t6s-core/core-backend/libsdef/node-uuid.d.ts" />
 /// <reference path="../../t6s-core/core-backend/scripts/Logger.ts" />
+/// <reference path="../../t6s-core/core-backend/t6s-core/core/scripts/infotype/CmdList.ts" />
+	/// <reference path="../../t6s-core/core-backend/t6s-core/core/scripts/infotype/Cmd.ts" />
 /// <reference path="../core/MosaicHelper.ts" />
 /// <reference path="../MosaicpictureNamespaceManager.ts" />
 
@@ -26,7 +28,7 @@ class InstagramMosaic extends SourceItf {
 	run() {
 		var self = this;
 
-		var socketId : number = this.getSourceNamespaceManager().socket.id;
+		var socketId : string = this.getSourceNamespaceManager().socket.id;
 		var limit = parseInt(self.getSourceNamespaceManager().getParams().Limit);
 		var infoDuration = parseInt(self.getSourceNamespaceManager().getParams().Limit);
 		var searchQuery = self.getSourceNamespaceManager().getParams().SearchQuery;
@@ -37,6 +39,9 @@ class InstagramMosaic extends SourceItf {
 		var apiLimit = 20;
 
 		var mosaichelper : MosaicHelper = MosaicHelper.getHelper(socketId);
+
+		var infoList : CmdList = new CmdList(uuid.v1());
+		infoList.setDurationToDisplay(infoDuration);
 
 		if (mosaichelper == null) {
 			mosaichelper = new MosaicHelper(CMSAlbumId, pictureUrl, lookBackward, socketId);
@@ -77,7 +82,17 @@ class InstagramMosaic extends SourceItf {
 						var callback = function () {
 							Logger.debug("Finish to upload pictures new counter: "+mosaichelper.getCountPic());
 
-							// TODO send info
+							var cmdInfo : Cmd = new Cmd(socketId);
+							cmdInfo.setCmd("counterMosaic");
+							var args : Array<string> = [];
+							args.push(mosaichelper.getCountPic().toString());
+							args.push(limit.toString());
+
+							cmdInfo.setArgs(args);
+							cmdInfo.setDurationToDisplay(infoDuration);
+
+							infoList.addCmd(cmdInfo);
+							self.getSourceNamespaceManager().sendNewInfoToClient(infoList);
 						};
 
 						mosaichelper.downloadFiles(urlPics, lastPicId, callback);
@@ -105,12 +120,32 @@ class InstagramMosaic extends SourceItf {
 		} else {
 			var success = function () {
 				Logger.debug("It worked !");
+				mosaichelper.cleanPictures();
+				var cmdInfo : Cmd = new Cmd(socketId);
+				cmdInfo.setCmd("mosaicProcessed");
+				cmdInfo.setPriority(InfoPriority.HIGH);
+				var args : Array<string> = [];
+				args.push(mosaichelper.getOutputPath());
+
+				cmdInfo.setArgs(args);
+				cmdInfo.setDurationToDisplay(infoDuration);
+
+				infoList.addCmd(cmdInfo);
+				self.getSourceNamespaceManager().sendNewInfoToClient(infoList);
 			};
 
 			var fail = function (err) {
 				Logger.error("Error while computing mosaic");
 				Logger.debug(err);
 			};
+
+			var cmdInfo : Cmd = new Cmd(socketId);
+			cmdInfo.setCmd("startProcessing");
+			cmdInfo.setPriority(InfoPriority.HIGH);
+			cmdInfo.setDurationToDisplay(infoDuration);
+
+			infoList.addCmd(cmdInfo);
+			self.getSourceNamespaceManager().sendNewInfoToClient(infoList);
 
 			mosaichelper.computeMosaic(success, fail);
 		}

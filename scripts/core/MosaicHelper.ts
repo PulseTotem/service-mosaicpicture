@@ -23,12 +23,12 @@ class MosaicHelper {
     private _inputPath : string;
     private _outputPath : string;
     private _lookBackward : boolean;
-    private _socketId : number;
+    private _socketId : string;
     private _cmsAlbumId : string;
     private _mosaicHasBeenProcessed : boolean;
     private _imageName : string;
 
-    constructor(cmsAlbumid : string, inputImage : string, lookBackward : boolean, socketId : number) {
+    constructor(cmsAlbumid : string, inputImage : string, lookBackward : boolean, socketId : string) {
         this._tilesPath = ServiceConfig.getTmpFilePath()+uuid.v1()+"/";
         this._countPic = 0;
         this._lastPicId = null;
@@ -54,6 +54,10 @@ class MosaicHelper {
 
     public turnOffLookBackward() {
         this._lookBackward = false;
+    }
+
+    public getOutputPath() {
+        return this._outputPath;
     }
 
     private downloadInputImage(inputImage : string) {
@@ -178,7 +182,8 @@ class MosaicHelper {
             var successPostPicture = function (imageObjectResponse : RestClientResponse) {
                 var imageObject = imageObjectResponse.data();
                 Logger.debug("Obtained picture info: "+imageObject);
-                successCallback(imageObject.id);
+                self._outputPath = ServiceConfig.getCMSHost() + "images/" + imageObject.id + "/raw?size=medium";
+                successCallback();
             };
 
             Logger.debug("Post picture "+self._outputPath+" to "+postPhotoUrl);
@@ -186,7 +191,26 @@ class MosaicHelper {
         }
     }
 
-    public static getHelper(socketId : number) : MosaicHelper {
+    public cleanPictures() {
+        var self = this;
+        try {
+            var tiles : Array<string> = fs.readdir(this._tilesPath);
+
+            tiles.forEach(function (tile : string) {
+                var path = this._tilesPath+tile;
+                fs.unlinkSync(path);
+            });
+
+            fs.rmdirSync(this._tilesPath);
+            fs.unlinkSync(this._inputPath);
+            Logger.debug("Cleaning pictures ok");
+        } catch (err) {
+            Logger.error("Error while cleaning pictures...");
+            Logger.debug(err);
+        }
+    }
+
+    public static getHelper(socketId : string) : MosaicHelper {
         var helper = MosaicHelper.helpers[socketId];
 
         if (helper) {
@@ -194,5 +218,9 @@ class MosaicHelper {
         } else {
             return null;
         }
+    }
+
+    public static removeHelper(socketId : string) {
+        delete MosaicHelper.helpers[socketId];
     }
 }
