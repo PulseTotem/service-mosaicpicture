@@ -10,6 +10,8 @@
 /// <reference path="../core/MosaicHelper.ts" />
 /// <reference path="../MosaicpictureNamespaceManager.ts" />
 
+var uuid : any = require('node-uuid');
+
 class InstagramMosaic extends SourceItf {
 
 	/**

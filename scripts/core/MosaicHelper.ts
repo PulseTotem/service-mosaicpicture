@@ -8,7 +8,7 @@
 
 var request = require('request');
 var fs : any = require('fs');
-var uuid = require('uuid');
+var uuid : any = require('node-uuid');
 var PythonShell = require('python-shell');
 
 var MosaicScript = "./resources/mosaic.py";
