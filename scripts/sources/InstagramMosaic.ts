@@ -23,7 +23,7 @@ class InstagramMosaic extends SourceItf {
 	constructor(params : any, mosaicpictureNamespaceManager : MosaicpictureNamespaceManager) {
 		super(params, mosaicpictureNamespaceManager);
 
-		if (this.checkParams(["Limit","InfoDuration","SearchQuery","oauthKey","PictureURL","LookBackward","CMSAlbumId"])) {
+		if (this.checkParams(["Limit","InfoDuration","SearchQuery","oauthKey","PictureURL","LookBackward","CMSAlbumId","TextValue"])) {
 			this.run();
 		}
 	}
@@ -39,6 +39,7 @@ class InstagramMosaic extends SourceItf {
 		var pictureUrl = self.getSourceNamespaceManager().getParams().PictureURL;
 		var lookBackward = (self.getSourceNamespaceManager().getParams().LookBackward == "true");
 		var CMSAlbumId = self.getSourceNamespaceManager().getParams().CMSAlbumId;
+		var textValue = self.getSourceNamespaceManager().getParams().TextValue;
 		var apiLimit = 20;
 
 		var mosaichelper:MosaicHelper = MosaicHelper.getHelper(socketId);
@@ -104,6 +105,7 @@ class InstagramMosaic extends SourceItf {
 								var args : Array<string> = [];
 								args.push(mosaichelper.getCountPic().toString());
 								args.push(limit.toString());
+								args.push(textValue);
 
 								cmdInfo.setArgs(args);
 								cmdInfo.setDurationToDisplay(infoDuration);
