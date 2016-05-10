@@ -11,8 +11,6 @@ var fs : any = require('fs');
 var uuid : any = require('node-uuid');
 var PythonShell = require('python-shell');
 
-var MosaicScript = "./resources/mosaic.py";
-
 class MosaicHelper {
 
     static helpers : any = {};
@@ -149,7 +147,7 @@ class MosaicHelper {
             mode: 'text',
             args: [this._inputPath, this._tilesPath, this._outputPath]
         };
-        var pyshell = new PythonShell(MosaicScript, options);
+        var pyshell = new PythonShell(ServiceConfig.getPythonScriptPath(), options);
 
         pyshell.on('message', function (message) {
             // received a message sent from the Python script (a simple "print" statement)

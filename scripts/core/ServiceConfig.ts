@@ -47,6 +47,14 @@ class ServiceConfig {
 	static tmpFilePath : string = "";
 
 	/**
+	 * Path to the python script
+	 *
+	 * @static
+	 * @type {string}
+     */
+	static pythonScriptPath : string = "";
+
+	/**
 	 * Retrieve configuration information from file description.
 	 *
 	 * @method retrieveConfigurationInformation
@@ -61,6 +69,7 @@ class ServiceConfig {
 				ServiceConfig.cmsAuthKey = configInfos.cmsAuthKey;
 				ServiceConfig.statHost = configInfos.statHost;
 				ServiceConfig.tmpFilePath = configInfos.tmpFilePath;
+				ServiceConfig.pythonScriptPath = configInfos.pythonScriptPath;
 			} catch (e) {
 				Logger.error("Service configuration file can't be read.");
 				Logger.debug(e);
@@ -110,5 +119,15 @@ class ServiceConfig {
 	static getTmpFilePath() : string {
 		ServiceConfig.retrieveConfigurationInformation();
 		return ServiceConfig.tmpFilePath;
+	}
+
+	/**
+	 * Return python script absolute path
+	 * @static
+	 * @returns {string} Absolute path for python script
+	 */
+	static getPythonScriptPath() : string {
+		ServiceConfig.retrieveConfigurationInformation();
+		return ServiceConfig.pythonScriptPath;
 	}
 }
