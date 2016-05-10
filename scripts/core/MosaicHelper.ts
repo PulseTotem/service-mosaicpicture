@@ -202,16 +202,21 @@ class MosaicHelper {
     public cleanPictures() {
         var self = this;
         try {
-            var tiles : Array<string> = fs.readdir(this._tilesPath);
+            if (this._tilesPath != null) {
+                var tiles : Array<string> = fs.readdir(this._tilesPath);
 
-            tiles.forEach(function (tile : string) {
-                var path = this._tilesPath+tile;
-                fs.unlinkSync(path);
-            });
+                tiles.forEach(function (tile : string) {
+                    var path = this._tilesPath+tile;
+                    fs.unlinkSync(path);
+                });
 
-            fs.rmdirSync(this._tilesPath);
-            fs.unlinkSync(this._inputPath);
-            Logger.debug("Cleaning pictures ok");
+                fs.rmdirSync(this._tilesPath);
+                fs.unlinkSync(this._inputPath);
+
+                this._tilesPath = null;
+                this._inputPath = null;
+                Logger.debug("Cleaning pictures ok");
+            }
         } catch (err) {
             Logger.error("Error while cleaning pictures...");
             Logger.debug(err);
@@ -229,6 +234,11 @@ class MosaicHelper {
     }
 
     public static removeHelper(socketId : string) {
-        delete MosaicHelper.helpers[socketId];
+        Logger.debug("Remove helper "+socketId);
+        var mosaicHelper = MosaicHelper.getHelper(socketId);
+        if (mosaicHelper != null) {
+            mosaicHelper.cleanPictures();
+            delete MosaicHelper.helpers[socketId];
+        }
     }
 }

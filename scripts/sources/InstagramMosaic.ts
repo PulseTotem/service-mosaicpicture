@@ -78,8 +78,11 @@ class InstagramMosaic extends SourceItf {
 					} else {
 						for (var i = 0; i < listPhotos.length; i++) {
 							var photo = listPhotos[i];
-							lastPicId = photo.id;
-							urlPics.push(photo.images.standard_resolution.url);
+							Logger.debug(photo);
+							if (photo.type == "image") {
+								lastPicId = photo.id;
+								urlPics.push(photo.images.standard_resolution.url);
+							}
 						}
 
 						var callback = function () {
@@ -98,7 +101,9 @@ class InstagramMosaic extends SourceItf {
 							self.getSourceNamespaceManager().sendNewInfoToClient(infoList);
 						};
 
-						mosaichelper.downloadFiles(urlPics, lastPicId, callback);
+						if (urlPics.length > 0) {
+							mosaichelper.downloadFiles(urlPics, lastPicId, callback);
+						}
 					}
 				};
 
