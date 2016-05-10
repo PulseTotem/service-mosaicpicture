@@ -42,8 +42,8 @@ class MosaicHelper {
 
     // TODO: use SDI / Profil Id instead of a random dir
     private initDir() {
-        var uuid = uuid.v1();
-        var path = ServiceConfig.getTmpFilePath()+uuid+"/";
+        var tmpDir = uuid.v1();
+        var path = ServiceConfig.getTmpFilePath()+tmpDir+"/";
         fs.mkdirSync(path);
         this._tilesPath = path;
     }
