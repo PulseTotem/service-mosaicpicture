@@ -87,7 +87,7 @@ module.exports = function (grunt) {
               files: 	[{'build/package.json': 'package.json'}]
             },
             resources: {
-                files: 	[{expand: true, cwd: 'resources', src: ['**'], dest: 'build'}]
+                files: 	[{expand: true, cwd: 'resources', src: ['**'], dest: 'build/js/resources'}]
             },
             buildServiceConfigFile: {
                 files: 	[{'build/js/service_config.json': 'scripts/core/service_config.json'}]
