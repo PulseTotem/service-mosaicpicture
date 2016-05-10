@@ -31,7 +31,7 @@ class InstagramMosaic extends SourceItf {
 	run() {
 		var self = this;
 
-		var socketId : string = this.getSourceNamespaceManager().socket.id;
+		var socketId:string = this.getSourceNamespaceManager().socket.id;
 		var limit = parseInt(self.getSourceNamespaceManager().getParams().Limit);
 		var infoDuration = parseInt(self.getSourceNamespaceManager().getParams().Limit);
 		var searchQuery = self.getSourceNamespaceManager().getParams().SearchQuery;
@@ -41,120 +41,144 @@ class InstagramMosaic extends SourceItf {
 		var CMSAlbumId = self.getSourceNamespaceManager().getParams().CMSAlbumId;
 		var apiLimit = 20;
 
-		var mosaichelper : MosaicHelper = MosaicHelper.getHelper(socketId);
+		var mosaichelper:MosaicHelper = MosaicHelper.getHelper(socketId);
 
-		var infoList : CmdList = new CmdList(uuid.v1());
+		var infoList:CmdList = new CmdList(uuid.v1());
 		infoList.setDurationToDisplay(infoDuration);
 
 		if (mosaichelper == null) {
 			mosaichelper = new MosaicHelper(CMSAlbumId, pictureUrl, lookBackward, socketId);
 		}
 
-		// if limits of picture is not reached, some picture have to be retrieved
-		if (mosaichelper.getCountPic() < limit) {
-			var failManageOAuth = function(error) {
-				Logger.error("Error during the request manage OAuth");
-				if(error) {
-					Logger.error(error);
-				}
-			};
+		if (mosaichelper.getMosaicHasBeenProcessed()) {
+			var cmdInfo:Cmd = new Cmd(socketId);
+			cmdInfo.setCmd("mosaicProcessed");
+			var args:Array<string> = [];
+			args.push(mosaichelper.getOutputPath());
 
-			var successManageOAuth = function(oauthActions) {
+			cmdInfo.setArgs(args);
+			cmdInfo.setDurationToDisplay(infoDuration);
 
-				var failGet = function(error) {
-					Logger.error("Error during the request get");
+			infoList.addCmd(cmdInfo);
+			self.getSourceNamespaceManager().sendNewInfoToClient(infoList);
+		} else {
+			// if limits of picture is not reached, some picture have to be retrieved
+			if (mosaichelper.getCountPic() < limit) {
+				var failManageOAuth = function(error) {
+					Logger.error("Error during the request manage OAuth");
 					if(error) {
 						Logger.error(error);
 					}
 				};
 
-				var successSearch = function (information) {
-					var listPhotos = information.data;
-					var urlPics = [];
-					var lastPicId = information.pagination.next_max_id;
-					var firstPicId = information.pagination.next_min_id;
+				var successManageOAuth = function(oauthActions) {
 
-					if (listPhotos.length == 0) {
-						mosaichelper.turnOffLookBackward();
-					} else {
-						for (var i = 0; i < listPhotos.length; i++) {
-							var photo = listPhotos[i];
-							if (photo.type == "image") {
-								urlPics.push(photo.images.standard_resolution.url);
+					var failGet = function(error) {
+						Logger.error("Error during the request get");
+						if(error) {
+							Logger.error(error);
+						}
+					};
+
+					var successSearch = function (information) {
+						var listPhotos = information.data;
+						var urlPics = [];
+						var lastPicId = information.pagination.next_max_id;
+						var firstPicId = information.pagination.next_min_id;
+
+						if (listPhotos.length == 0) {
+							mosaichelper.turnOffLookBackward();
+						} else {
+							for (var i = 0; i < listPhotos.length; i++) {
+								var photo = listPhotos[i];
+								if (photo.type == "image") {
+									urlPics.push(photo.images.standard_resolution.url);
+								}
+							}
+
+							var callback = function () {
+								Logger.debug("Finish to upload pictures new counter: "+mosaichelper.getCountPic());
+
+								var cmdInfo : Cmd = new Cmd(socketId);
+								cmdInfo.setCmd("counterMosaic");
+								var args : Array<string> = [];
+								args.push(mosaichelper.getCountPic().toString());
+								args.push(limit.toString());
+
+								cmdInfo.setArgs(args);
+								cmdInfo.setDurationToDisplay(infoDuration);
+
+								infoList.addCmd(cmdInfo);
+								self.getSourceNamespaceManager().sendNewInfoToClient(infoList);
+							};
+
+							if (urlPics.length > 0) {
+								mosaichelper.downloadFiles(urlPics, lastPicId, firstPicId, callback);
 							}
 						}
+					};
 
-						var callback = function () {
-							Logger.debug("Finish to upload pictures new counter: "+mosaichelper.getCountPic());
 
-							var cmdInfo : Cmd = new Cmd(socketId);
-							cmdInfo.setCmd("counterMosaic");
-							var args : Array<string> = [];
-							args.push(mosaichelper.getCountPic().toString());
-							args.push(limit.toString());
+					var urlApi = 'https://api.instagram.com/v1/tags/'+searchQuery+'/media/recent?count='+apiLimit;
 
-							cmdInfo.setArgs(args);
-							cmdInfo.setDurationToDisplay(infoDuration);
-
-							infoList.addCmd(cmdInfo);
-							self.getSourceNamespaceManager().sendNewInfoToClient(infoList);
-						};
-
-						if (urlPics.length > 0) {
-							mosaichelper.downloadFiles(urlPics, lastPicId, firstPicId, callback);
-						}
+					if (mosaichelper.lookBackward() && mosaichelper.getMinPicId() != null) {
+						urlApi += '&min_tag_id='+mosaichelper.getMinPicId();
 					}
+
+					if (!mosaichelper.lookBackward() && mosaichelper.getMaxPicId() != null) {
+						urlApi += '&max_tag_id='+mosaichelper.getMaxPicId();
+					}
+
+					Logger.debug("Get with the following URL : "+urlApi);
+					oauthActions.get(urlApi, successSearch, failGet);
 				};
 
+				self.getSourceNamespaceManager().manageOAuth('instagram', self.getParams().oauthKey, successManageOAuth, failManageOAuth);
 
-				var urlApi = 'https://api.instagram.com/v1/tags/'+searchQuery+'/media/recent?count='+apiLimit;
+				// if limits of picture is reached, we can process picture to create the image
+			} else {
+				var successComputeMosaic = function () {
+					Logger.debug("Mosaic computed with success... Send to CMS");
 
-				if (mosaichelper.lookBackward() && mosaichelper.getMinPicId() != null) {
-					urlApi += '&min_tag_id='+mosaichelper.getMinPicId();
-				}
+					var failPostToCMS = function (err) {
+						Logger.error("Error while posting picture to CMS");
+						Logger.debug(err);
+					};
 
-				if (!mosaichelper.lookBackward() && mosaichelper.getMaxPicId() != null) {
-					urlApi += '&max_tag_id='+mosaichelper.getMaxPicId();
-				}
+					var successPostToCMS = function () {
+						Logger.debug("Success when posting to CMS");
+						mosaichelper.cleanPictures();
+						var cmdInfo : Cmd = new Cmd(socketId);
+						cmdInfo.setCmd("mosaicProcessed");
+						cmdInfo.setPriority(InfoPriority.HIGH);
+						var args : Array<string> = [];
+						args.push(mosaichelper.getOutputPath());
 
-				Logger.debug("Get with the following URL : "+urlApi);
-				oauthActions.get(urlApi, successSearch, failGet);
-			};
+						cmdInfo.setArgs(args);
+						cmdInfo.setDurationToDisplay(infoDuration);
 
-			self.getSourceNamespaceManager().manageOAuth('instagram', self.getParams().oauthKey, successManageOAuth, failManageOAuth);
+						infoList.addCmd(cmdInfo);
+						self.getSourceNamespaceManager().sendNewInfoToClient(infoList);
+					};
 
-		// if limits of picture is reached, we can process picture to create the image
-		} else {
-			var successComputeMosaic = function () {
-				Logger.debug("It worked !");
-				mosaichelper.cleanPictures();
+					mosaichelper.postPictureToCMS(successPostToCMS, failPostToCMS);
+				};
+
+				var failComputeMosaic = function (err) {
+					Logger.error("Error while computing mosaic");
+					Logger.debug(err);
+				};
+
 				var cmdInfo : Cmd = new Cmd(socketId);
-				cmdInfo.setCmd("mosaicProcessed");
+				cmdInfo.setCmd("startProcessing");
 				cmdInfo.setPriority(InfoPriority.HIGH);
-				var args : Array<string> = [];
-				args.push(mosaichelper.getOutputPath());
-
-				cmdInfo.setArgs(args);
 				cmdInfo.setDurationToDisplay(infoDuration);
 
 				infoList.addCmd(cmdInfo);
 				self.getSourceNamespaceManager().sendNewInfoToClient(infoList);
-			};
 
-			var failComputeMosaic = function (err) {
-				Logger.error("Error while computing mosaic");
-				Logger.debug(err);
-			};
-
-			var cmdInfo : Cmd = new Cmd(socketId);
-			cmdInfo.setCmd("startProcessing");
-			cmdInfo.setPriority(InfoPriority.HIGH);
-			cmdInfo.setDurationToDisplay(infoDuration);
-
-			infoList.addCmd(cmdInfo);
-			self.getSourceNamespaceManager().sendNewInfoToClient(infoList);
-
-			mosaichelper.computeMosaic(successComputeMosaic, failComputeMosaic);
+				mosaichelper.computeMosaic(successComputeMosaic, failComputeMosaic);
+			}
 		}
 	}
 }

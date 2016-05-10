@@ -72,6 +72,10 @@ class MosaicHelper {
         return this._outputPath;
     }
 
+    public getMosaicHasBeenProcessed() : boolean {
+        return this._mosaicHasBeenProcessed;
+    }
+
     private downloadInputImage(inputImage : string) {
         var self = this;
         var filename = this.getFilename(inputImage);
@@ -195,6 +199,7 @@ class MosaicHelper {
             var successPostPicture = function (imageObjectResponse : RestClientResponse) {
                 var imageObject = imageObjectResponse.data();
                 Logger.debug("Obtained picture info: "+imageObject);
+                self._mosaicHasBeenProcessed = true;
                 self._outputPath = ServiceConfig.getCMSHost() + "images/" + imageObject.id + "/raw?size=medium";
                 successCallback();
             };
