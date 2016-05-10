@@ -29,7 +29,7 @@ class MosaicHelper {
     private _imageName : string;
 
     constructor(cmsAlbumid : string, inputImage : string, lookBackward : boolean, socketId : string) {
-        this._tilesPath = fs.mkdtempSync(ServiceConfig.getTmpFilePath())+"/"; // TODO: use SDI / Profil Id instead of a random dir
+        this.initDir();
         this._countPic = 0;
         this._lastPicId = null;
         this._socketId = socketId;
@@ -38,6 +38,14 @@ class MosaicHelper {
         this._mosaicHasBeenProcessed = false;
         this.downloadInputImage(inputImage);
         MosaicHelper.helpers[socketId] = this;
+    }
+
+    // TODO: use SDI / Profil Id instead of a random dir
+    private initDir() {
+        var uuid = uuid.v1();
+        var path = ServiceConfig.getTmpFilePath()+uuid+"/";
+        fs.mkdirSync(path);
+        this._tilesPath = path;
     }
 
     public getCountPic() : number {
