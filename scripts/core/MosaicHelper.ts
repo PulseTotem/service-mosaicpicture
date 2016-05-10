@@ -29,7 +29,7 @@ class MosaicHelper {
     private _imageName : string;
 
     constructor(cmsAlbumid : string, inputImage : string, lookBackward : boolean, socketId : string) {
-        this._tilesPath = ServiceConfig.getTmpFilePath()+uuid.v1()+"/";
+        this._tilesPath = fs.mkdtempSync(ServiceConfig.getTmpFilePath())+"/"; // TODO: use SDI / Profil Id instead of a random dir
         this._countPic = 0;
         this._lastPicId = null;
         this._socketId = socketId;
