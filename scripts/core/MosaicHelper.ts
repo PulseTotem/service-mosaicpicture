@@ -17,7 +17,8 @@ class MosaicHelper {
 
     static helpers : any = {};
 
-    private _lastPicId : string;
+    private _max_pic_id : string;
+    private _min_pic_id : string;
     private _countPic : number;
     private _tilesPath : string;
     private _inputPath : string;
@@ -31,7 +32,8 @@ class MosaicHelper {
     constructor(cmsAlbumid : string, inputImage : string, lookBackward : boolean, socketId : string) {
         this.initDir();
         this._countPic = 0;
-        this._lastPicId = null;
+        this._max_pic_id = null;
+        this._min_pic_id = null;
         this._socketId = socketId;
         this._lookBackward = lookBackward;
         this._cmsAlbumId = cmsAlbumid;
@@ -52,8 +54,12 @@ class MosaicHelper {
         return this._countPic;
     }
 
-    public getLastPicId() : string {
-        return this._lastPicId;
+    public getMaxPicId() : string {
+        return this._max_pic_id;
+    }
+
+    public getMinPicId() : string {
+        return this._min_pic_id;
     }
 
     public lookBackward() : boolean {
@@ -106,11 +112,12 @@ class MosaicHelper {
         });
     }
 
-    public downloadFiles(urls : Array<string>, lastPicId : string, callback : Function) {
+    public downloadFiles(urls : Array<string>, lastPicId : string, firstPicId : string, callback : Function) {
         var self = this;
         var internalCounter = 0;
         var nbUrls = urls.length;
-        this._lastPicId = lastPicId;
+        this._max_pic_id = lastPicId;
+        this._min_pic_id = firstPicId;
 
         var fail = function (err) {
             internalCounter++;
@@ -203,7 +210,7 @@ class MosaicHelper {
         var self = this;
         try {
             if (this._tilesPath != null) {
-                var tiles : Array<string> = fs.readdir(this._tilesPath);
+                var tiles : Array<string> = fs.readdirSync(this._tilesPath);
 
                 tiles.forEach(function (tile : string) {
                     var path = this._tilesPath+tile;

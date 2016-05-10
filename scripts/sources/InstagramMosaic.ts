@@ -71,7 +71,8 @@ class InstagramMosaic extends SourceItf {
 				var successSearch = function (information) {
 					var listPhotos = information.data;
 					var urlPics = [];
-					var lastPicId = null;
+					var lastPicId = information.pagination.next_max_id;
+					var firstPicId = information.pagination.next_min_id;
 
 					if (listPhotos.length == 0) {
 						mosaichelper.turnOffLookBackward();
@@ -102,7 +103,7 @@ class InstagramMosaic extends SourceItf {
 						};
 
 						if (urlPics.length > 0) {
-							mosaichelper.downloadFiles(urlPics, lastPicId, callback);
+							mosaichelper.downloadFiles(urlPics, lastPicId, firstPicId, callback);
 						}
 					}
 				};
@@ -110,11 +111,11 @@ class InstagramMosaic extends SourceItf {
 
 				var urlApi = 'https://api.instagram.com/v1/tags/'+searchQuery+'/media/recent?count='+apiLimit;
 
-				if (mosaichelper.getLastPicId() != null) {
+				if (mosaichelper.getMaxPicId() != null) {
 					if (mosaichelper.lookBackward()) {
-						urlApi += '&min_tag_id='+mosaichelper.getLastPicId();
+						urlApi += '&min_tag_id='+mosaichelper.getMaxPicId();
 					} else {
-						urlApi += '&max_tag_id='+mosaichelper.getLastPicId();
+						urlApi += '&max_tag_id='+mosaichelper.getMaxPicId();
 					}
 				}
 
