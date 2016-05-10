@@ -79,9 +79,7 @@ class InstagramMosaic extends SourceItf {
 					} else {
 						for (var i = 0; i < listPhotos.length; i++) {
 							var photo = listPhotos[i];
-							Logger.debug(photo);
 							if (photo.type == "image") {
-								lastPicId = photo.id;
 								urlPics.push(photo.images.standard_resolution.url);
 							}
 						}
@@ -111,12 +109,12 @@ class InstagramMosaic extends SourceItf {
 
 				var urlApi = 'https://api.instagram.com/v1/tags/'+searchQuery+'/media/recent?count='+apiLimit;
 
-				if (mosaichelper.getMaxPicId() != null) {
-					if (mosaichelper.lookBackward()) {
-						urlApi += '&min_tag_id='+mosaichelper.getMaxPicId();
-					} else {
-						urlApi += '&max_tag_id='+mosaichelper.getMaxPicId();
-					}
+				if (mosaichelper.lookBackward() && mosaichelper.getMinPicId() != null) {
+					urlApi += '&min_tag_id='+mosaichelper.getMinPicId();
+				}
+
+				if (!mosaichelper.lookBackward() && mosaichelper.getMaxPicId() != null) {
+					urlApi += '&max_tag_id='+mosaichelper.getMaxPicId();
 				}
 
 				Logger.debug("Get with the following URL : "+urlApi);

@@ -213,7 +213,7 @@ class MosaicHelper {
                 var tiles : Array<string> = fs.readdirSync(this._tilesPath);
 
                 tiles.forEach(function (tile : string) {
-                    var path = this._tilesPath+tile;
+                    var path = self._tilesPath+tile;
                     fs.unlinkSync(path);
                 });
 
