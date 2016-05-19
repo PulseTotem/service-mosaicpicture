@@ -131,7 +131,50 @@ class BeepeersMosaic extends SourceItf {
                 Logger.debug("Get with the following URL : "+urlApi);
 
                 RestClient.get(urlApi, successSearch, failGet, apiKey);
+            }  else {
+                var successComputeMosaic = function () {
+                    Logger.debug("Mosaic computed with success... Send to CMS");
+
+                    var failPostToCMS = function (err) {
+                        Logger.error("Error while posting picture to CMS");
+                        Logger.debug(err);
+                    };
+
+                    var successPostToCMS = function () {
+                        Logger.debug("Success when posting to CMS");
+                        mosaichelper.cleanPictures();
+                        var cmdInfo : Cmd = new Cmd(socketId);
+                        cmdInfo.setCmd("mosaicProcessed");
+                        cmdInfo.setPriority(InfoPriority.HIGH);
+                        var args : Array<string> = [];
+                        args.push(mosaichelper.getOutputPath());
+
+                        cmdInfo.setArgs(args);
+                        cmdInfo.setDurationToDisplay(infoDuration);
+
+                        infoList.addCmd(cmdInfo);
+                        self.getSourceNamespaceManager().sendNewInfoToClient(infoList);
+                    };
+
+                    mosaichelper.postPictureToCMS(successPostToCMS, failPostToCMS);
+                };
+
+                var failComputeMosaic = function (err) {
+                    Logger.error("Error while computing mosaic");
+                    Logger.debug(err);
+                };
+
+                var cmdInfo : Cmd = new Cmd(socketId);
+                cmdInfo.setCmd("startProcessing");
+                cmdInfo.setPriority(InfoPriority.HIGH);
+                cmdInfo.setDurationToDisplay(infoDuration);
+
+                infoList.addCmd(cmdInfo);
+                self.getSourceNamespaceManager().sendNewInfoToClient(infoList);
+
+                mosaichelper.computeMosaic(successComputeMosaic, failComputeMosaic);
             }
+
         }
     }
 }
