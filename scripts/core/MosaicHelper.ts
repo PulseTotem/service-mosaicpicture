@@ -25,6 +25,8 @@ class MosaicHelper {
     private _socketId : string;
     private _cmsAlbumId : string;
     private _mosaicHasBeenProcessed : boolean;
+    private _mosaicBeingProcessed : boolean;
+    private _mosaicHasBeenPosted : boolean;
     private _imageName : string;
 
     constructor(cmsAlbumid : string, inputImage : string, lookBackward : boolean, socketId : string) {
@@ -36,6 +38,8 @@ class MosaicHelper {
         this._lookBackward = lookBackward;
         this._cmsAlbumId = cmsAlbumid;
         this._mosaicHasBeenProcessed = false;
+        this._mosaicBeingProcessed = false;
+        this._mosaicHasBeenPosted = false;
         this.downloadInputImage(inputImage);
         MosaicHelper.helpers[socketId] = this;
     }
@@ -146,26 +150,34 @@ class MosaicHelper {
     }
 
     public computeMosaic(successCallback : Function, failCallback : Function) {
-        var self = this;
-        var options = {
-            mode: 'text',
-            args: [this._inputPath, this._tilesPath, this._outputPath]
-        };
-        var pyshell = new PythonShell(ServiceConfig.getPythonScriptPath(), options);
+        if (this._mosaicHasBeenProcessed || this._mosaicBeingProcessed) {
+            failCallback("Mosaic has already been processed.");
+        } else {
+            var self = this;
 
-        pyshell.on('message', function (message) {
-            // received a message sent from the Python script (a simple "print" statement)
-            Logger.debug(message);
-        });
+            this._mosaicBeingProcessed = true;
 
-        pyshell.end(function (err) {
-            if (err) {
-                failCallback(err);
-            } else {
-                self._mosaicHasBeenProcessed = true;
-                successCallback();
-            }
-        });
+            var options = {
+                mode: 'text',
+                args: [this._inputPath, this._tilesPath, this._outputPath]
+            };
+            var pyshell = new PythonShell(ServiceConfig.getPythonScriptPath(), options);
+
+            pyshell.on('message', function (message) {
+                // received a message sent from the Python script (a simple "print" statement)
+                Logger.debug(message);
+            });
+
+            pyshell.end(function (err) {
+                if (err) {
+                    failCallback(err);
+                } else {
+                    self._mosaicHasBeenProcessed = true;
+                    self._mosaicBeingProcessed = false;
+                    successCallback();
+                }
+            });
+        }
     }
 
     private static base64_encode(file) {
@@ -178,35 +190,40 @@ class MosaicHelper {
     public postPictureToCMS(successCallback : Function, failCallback : Function) {
         var self = this;
 
-        if (!this._mosaicHasBeenProcessed) {
-            failCallback("Mosaic has not been processed yet.");
+        if (this._mosaicHasBeenPosted) {
+            successCallback();
         } else {
-            var postPhotoUrl = ServiceConfig.getCMSHost() + "admin/images_collections/"+this._cmsAlbumId+"/images/";
+            if (!this._mosaicHasBeenProcessed) {
+                failCallback("Mosaic has not been processed yet.");
+            } else {
+                var postPhotoUrl = ServiceConfig.getCMSHost() + "admin/images_collections/"+this._cmsAlbumId+"/images/";
 
-            var b64datas = MosaicHelper.base64_encode(this._outputPath);
+                var b64datas = MosaicHelper.base64_encode(this._outputPath);
 
 
-            var imageDatas = {
-                name: self._imageName,
-                description: self._imageName,
-                file: b64datas
-            };
+                var imageDatas = {
+                    name: self._imageName,
+                    description: self._imageName,
+                    file: b64datas
+                };
 
-            var fail = function (error : RestClientResponse) {
-                failCallback(error.data());
-            };
+                var fail = function (error : RestClientResponse) {
+                    failCallback(error.data());
+                };
 
-            var successPostPicture = function (imageObjectResponse : RestClientResponse) {
-                var imageObject = imageObjectResponse.data();
-                Logger.debug("Obtained picture info: "+imageObject);
-                self._mosaicHasBeenProcessed = true;
-                self._outputPath = ServiceConfig.getCMSHost() + "images/" + imageObject.id + "/raw?size=medium";
-                successCallback();
-            };
+                var successPostPicture = function (imageObjectResponse : RestClientResponse) {
+                    var imageObject = imageObjectResponse.data();
+                    Logger.debug("Obtained picture info: "+imageObject);
+                    self._mosaicHasBeenPosted = true;
+                    self._outputPath = ServiceConfig.getCMSHost() + "images/" + imageObject.id + "/raw?size=medium";
+                    successCallback();
+                };
 
-            Logger.debug("Post picture "+self._outputPath+" to "+postPhotoUrl);
-            RestClient.post(postPhotoUrl, imageDatas, successPostPicture, fail, ServiceConfig.getCMSAuthKey());
+                Logger.debug("Post picture "+self._outputPath+" to "+postPhotoUrl);
+                RestClient.post(postPhotoUrl, imageDatas, successPostPicture, fail, ServiceConfig.getCMSAuthKey());
+            }
         }
+
     }
 
     public cleanPictures() {
