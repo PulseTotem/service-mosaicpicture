@@ -74,45 +74,49 @@ class BeepeersMosaic extends SourceItf {
                 };
 
                 var successSearch = function (response : RestClientResponse) {
-                    var listPhotos = response.data();
-                    var urlPics = [];
-                    var lastPicId;
-
-                    if (listPhotos.length == 0) {
+                    if (response.statusCode() == 204) { // No content
                         mosaichelper.turnOffLookBackward();
                     } else {
-                        for (var i = 0; i < listPhotos.length; i++) {
-                            var photo = listPhotos[i];
-                            if (photo.mediaId == mosaichelper.getMaxPicId()) {
-                                mosaichelper.turnOffLookBackward();
-                                break;
-                            } else {
-                                if (i == 0) {
-                                    lastPicId = photo.mediaId;
+                        var listPhotos = response.data();
+                        var urlPics = [];
+                        var lastPicId;
+
+                        if (listPhotos.length == 0) {
+                            mosaichelper.turnOffLookBackward();
+                        } else {
+                            for (var i = 0; i < listPhotos.length; i++) {
+                                var photo = listPhotos[i];
+                                if (photo.mediaId == mosaichelper.getMaxPicId()) {
+                                    mosaichelper.turnOffLookBackward();
+                                    break;
+                                } else {
+                                    if (i == 0) {
+                                        lastPicId = photo.mediaId;
+                                    }
+                                    urlPics.push(photo.url);
                                 }
-                                urlPics.push(photo.url);
                             }
-                        }
 
-                        var callback = function () {
-                            Logger.debug("Finish to upload pictures new counter: "+mosaichelper.getCountPic());
+                            var callback = function () {
+                                Logger.debug("Finish to upload pictures new counter: "+mosaichelper.getCountPic());
 
-                            var cmdInfo : Cmd = new Cmd(socketId);
-                            cmdInfo.setCmd("counterMosaic");
-                            var args : Array<string> = [];
-                            args.push(mosaichelper.getCountPic().toString());
-                            args.push(limit.toString());
-                            args.push(textValue);
+                                var cmdInfo : Cmd = new Cmd(socketId);
+                                cmdInfo.setCmd("counterMosaic");
+                                var args : Array<string> = [];
+                                args.push(mosaichelper.getCountPic().toString());
+                                args.push(limit.toString());
+                                args.push(textValue);
 
-                            cmdInfo.setArgs(args);
-                            cmdInfo.setDurationToDisplay(infoDuration);
+                                cmdInfo.setArgs(args);
+                                cmdInfo.setDurationToDisplay(infoDuration);
 
-                            infoList.addCmd(cmdInfo);
-                            self.getSourceNamespaceManager().sendNewInfoToClient(infoList);
-                        };
+                                infoList.addCmd(cmdInfo);
+                                self.getSourceNamespaceManager().sendNewInfoToClient(infoList);
+                            };
 
-                        if (urlPics.length > 0) {
-                            mosaichelper.downloadFiles(urlPics, lastPicId, null, callback);
+                            if (urlPics.length > 0) {
+                                mosaichelper.downloadFiles(urlPics, lastPicId, null, callback);
+                            }
                         }
                     }
                 };
@@ -120,7 +124,7 @@ class BeepeersMosaic extends SourceItf {
 
                 var urlApi = 'https://beepeers.com/api/v2/media/last?nbResults='+apiLimit;
 
-                if (mosaichelper.lookBackward() && mosaichelper.getMinPicId() != null) {
+                if (mosaichelper.lookBackward()) {
                     urlApi += '&startIndex='+mosaichelper.getCountPic();
                 }
 
