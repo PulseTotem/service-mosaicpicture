@@ -1,0 +1,4 @@
+{
+    "coreRepoPath" : "/AbsolutePathTo/the6thscreen-core",
+    "coreBackendRepoPath" : "/AbsolutePathTo/the6thscreen-core-backend"
+}
